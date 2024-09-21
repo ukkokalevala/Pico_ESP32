@@ -1,0 +1,50 @@
+//Pico W (Client):
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+#define BUTTON_PIN 2
+
+bool buttonState = LOW;
+bool lastButtonState = LOW;
+
+const char* ssid = "SSID";
+const char* password = "PASSWORD";
+const char* serverUrl = "http://192.168.0.81/"; // Set ESP32-C3 IP address
+
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  Serial.begin(115200);
+  
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to Wi-Fi...");
+  }
+  Serial.println("Connected to Wi-Fi");
+}
+
+void sendToggleRequest() {
+  buttonState = digitalRead(BUTTON_PIN);
+  
+  if (buttonState == LOW && lastButtonState == HIGH) { // Detect button press
+    HTTPClient http;
+    http.begin(serverUrl); // Specify the server URL
+    int httpCode = http.GET(); // Send the GET request
+    
+    if (httpCode > 0) {
+      String payload = http.getString();
+      Serial.println("Response: " + payload);
+    } else {
+      Serial.println("Error in HTTP request");
+    }
+    http.end(); // End the connection
+  }
+  
+  lastButtonState = buttonState;
+}
+
+void loop() {
+  sendToggleRequest();
+  delay(100); // Debouncing
+}
